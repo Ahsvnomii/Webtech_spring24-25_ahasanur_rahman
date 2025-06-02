@@ -1,4 +1,4 @@
-
+<!-- signup.php -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,6 +16,19 @@
 <h2>Signup</h2>
 
 <?php
+// DB config
+$host = "localhost";
+$dbname = "fitness_tracker1"; // your DB name
+$user = "root";          // DB username
+$pass = "";              // DB password
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("DB connection failed: " . $e->getMessage());
+}
+
 $name = $email = $password = $confirm = $age = $weight = $gender = "";
 $errors = [];
 
@@ -50,11 +63,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($errors)) {
-        echo "<p style='color:green;'>Signup successful! (Database save will be done in backend step.)</p>";
-        // Later: Save to DB here
+        // Hash password
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+        // Insert into DB
+        try {
+            $stmt = $pdo->prepare("INSERT INTO users (name, email, password, age, weight, gender) 
+                                   VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $email, $hashedPassword, $age, $weight, $gender]);
+
+            echo "<p style='color:green;'>Signup successful!</p>";
+            // Optional: Redirect to login page
+            // header("Location: login.php");
+            // exit;
+
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $errors[] = "This email is already registered.";
+            } else {
+                $errors[] = "Error: " . $e->getMessage();
+            }
+        }
     }
 }
 ?>
+
 
 <form method="POST">
   <input type="text" name="name" placeholder="Full Name" value="<?= htmlspecialchars($name) ?>">
